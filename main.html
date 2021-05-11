@@ -13,17 +13,109 @@
       const svg = d3.select('svg');
       const width = svg.attr('width');
       const height = svg.attr('height');
-      const margin = {top: 60, right: 30, bottom: 60, left: 150};
+      const margin = {top: 100, right: 100, bottom: 100, left: 150};
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
+      var mouseX = 0;
+      var mouseY = 0;
       const mainGroup = svg.append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`)
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
       const xValue = d => d.year;
       const yValue = d => d.globalsale;
       const xScale = d3.scaleLinear();
       const yScale = d3.scaleLinear();
       let yearsData; 
       let pgyData; 
+
+
+      const aduration = 3000;
+      const transition = d3.transition().duration(aduration).ease(d3.easeLinear);
+
+      const colors = {
+        'Wii':"#DD6B66", 
+        'NES':"#759AA0", 
+        'GB':"#E69D87", 
+        'DS':"#8DC1A9",
+        'X360':"#EA7E53", 
+        'PS3':"#EEDD78", 
+        'PS2':"#73A373",
+        'SNES':"#73B9BC",
+        'GBA':"#7289AB", 
+        '3DS':"#91CA8C", 
+        'PS4':"#F49F42", 
+        'N64':"#AA312C",
+        'PS':"#39656D",
+        'XB':"#B35E45", 
+        'PC':"#4B8E6F", 
+        '2600 ':"#B6481C",
+        'PSP':"#BBA838", 
+        'XOne':"#386F38", 
+        'GC':"#388589", 
+        'WiiU':"#385177",
+        'GEN':"#50964A", 
+        'DC':"#C16B0D", 
+        'PSV':"#FF8500", 
+        'SAT':"#45BFD3",
+        'SCD':"#FF5F2F", 
+        'WS':"#50F3A8", 
+        'NG':"#FF4800", 
+        'TG16':"#FFDE1A",
+        '3DO':"#41D541", 
+        'GG':"#32E7EF", 
+        'PCFX':"#ef638e",
+        '2600':"#B6481C",
+      };
+
+      var pointX = [{x: mouseX, y: 600}, {x: mouseX, y: mouseY}];
+      var pointY = [{x: 0, y: mouseY}, {x: mouseX, y: mouseY}];
+
+      var lineF = d3.line()
+          .x(function(d, i) {
+            return d.x;
+          })
+          .y(function(d, i) {
+            return d.y;
+          })
+
+      // 添加path元素，并通过line()计算出值来赋值
+      mainGroup.append('path')
+        .attr('id', 'focusX')
+        .attr('class', 'line')
+        .attr('d', lineF(pointX))
+        .attr('stroke', 'grey')
+        .attr('fill', 'none');
+
+      mainGroup.append('path')
+        .attr('id', 'focusY')
+        .attr('class', 'line')
+        .attr('d', lineF(pointY))
+        .attr('stroke', 'grey')
+        .attr('fill', 'none')
+
+      d3.select('body').on('mousemove', function() {
+        mouseX = d3.event.pageX - margin.left - 5;
+        mouseY = d3.event.pageY - margin.top - 5;
+        // console.log('x, y', d3.event.pageX, d3.event.pageY) // log the mouse x,y position
+
+        pointX[0].x = mouseX;
+        pointX[1].x = mouseX;
+        pointX[1].y = mouseY;
+
+
+        mainGroup.select('#focusX')
+          .attr('d', lineF(pointX));
+
+        
+        pointY[0].y = mouseY;
+        pointY[1].x = mouseX;
+        pointY[1].y = mouseY;
+
+        mainGroup.select('#focusY')
+          .attr('d', lineF(pointY));
+      });
+
+      
 
       /* 
         Loading data and preprocessing data. 
@@ -34,11 +126,13 @@
           yearsData.sort((a, b) => {
               return b.year - a.year;
           });
+          console.log("syn", yearsData)
           yearsData.forEach(d => {
               d.year = +(d.year);
               d.globalsale = +(d.globalsale);
           });
-          pgyData = data; 
+          pgyData = data;
+          console.log("syn", data) 
 
           // scales and axes; 
           xScale.domain(d3.extent(yearsData, xValue)).range([0, innerWidth]);
@@ -57,6 +151,241 @@
           yAxisGroup.append('text').attr('class', 'axisTitle').text('Global Sale')
           .attr('transform', 'rotate(-90)').attr('x', -innerHeight/2).attr('y', -60);
           d3.selectAll('.axisTitle').attr('text-anchor', "middle").attr('fill', 'black').attr('font-size', '2em');
+
+
+          // 添加折线
+          var line = d3.line()
+              .x(function(d) {
+                return xScale(d.year)
+              })
+              .y(function(d) {
+                return yScale(d.globalsale);
+              })
+          //     // .curve(d3.curveCardinal.tension(0.5))
+
+          const lineEmpty = d3.line()
+            .x(d => { return xScale(d.year) })
+            .y(d => { return yScale(0) })
+            // .curve(d3.curveCardinal.tension(0.5))
+
+          const pathupdate = mainGroup.selectAll('.linesssss').data(yearsData)
+
+          const pathenter = pathupdate.enter().append('path')
+              .attr('class', 'linesssss')
+              .attr("fill", "none")
+              .attr("stroke", "#D8BFD8")
+              .attr("stroke-width", 2.5)
+              .attr("d", lineEmpty(yearsData))
+
+          pathupdate.merge(pathenter)
+              .transition().duration(2000)
+              .attr("d", line(yearsData))
+          
+          mainGroup.selectAll('circle')
+            .data(yearsData)
+            .enter()
+            .append('circle')
+            
+            .attr('cx', function(d) {
+              return xScale(d.year);
+            })
+            .attr('cy', function(d) {
+              return yScale(d.globalsale);
+            })
+            .attr('r', 7)
+            .attr('fill', '#DFA0DF')
+            .attr('opacity', '0.0')
+            .transition().delay(2000).duration(1000)
+            .attr('opacity', '1.0');
+
+
+          var sales = {};
+          var platforms = [];
+          for (var i = 0; i < data.length; i++){
+
+            var year = parseInt(data[i]['year']);
+            var platform = data[i]['platform'];
+            var globalsale = data[i]['globalsale'];
+
+            if (platforms.indexOf(platform) === -1){
+              platforms.push(platform);
+            }
+
+            if(sales[year] !== undefined){
+              sales[year].push({platform: platform, sale: globalsale});
+            }
+            else{
+              sales[year] = [];
+              sales[year].push({platform: platform, sale: globalsale});
+            }
+          }
+
+          console.log('sales', sales)
+
+          d3.selectAll("circle").on('click', (event, d) => {
+              svg.selectAll('path.arc').remove();
+              svg.selectAll('path.lines').remove();
+              svg.selectAll('text.arc').remove();
+              console.log('click');
+              var target = d3.select(event.currentTarget);
+              console.log('target', target)
+              console.log('d', d)
+              var year = 0;
+              if (d == 0){
+                year = 2020;
+              }
+              else{
+                year = 2018 - d;
+              }
+              console.log('year', year)
+
+              mouseClickX = d3.event.pageX - 5;
+              mouseClickY = d3.event.pageY - 5;
+
+              const pie = d3.pie().value(d => d.sale);
+              const arcData = pie(sales[year]);
+
+
+              const arcOuter = d3.arc().innerRadius(80).outerRadius(80);
+              const arcInner = d3.arc().innerRadius(40).outerRadius(40);
+              
+
+              var sum = 0;
+              arcData.forEach(function(d, i){
+                d._endAngle = d.endAngle;
+                
+                if(d._endAngle - d.startAngle > 0.4){
+                  var midAngle = (d.startAngle + d._endAngle) / 2;
+                  var centre = arcInner.centroid(d)
+                  console.log('arc centre', centre[0])
+                  var p0 = {}
+                  var p1 = {}
+                  var p2 = {}
+                  if(midAngle > 4.7123){
+                    p0 = {x: centre[0], y: centre[1]}
+                    p1 = {x: centre[0]-20, y: centre[1]-20}
+                    p2 = {x: centre[0]-40, y: centre[1]-20}
+                  }
+                  else if(midAngle > 3.14159){
+                    p0 = {x: centre[0], y: centre[1]}
+                    p1 = {x: centre[0]-20, y: centre[1]+20}
+                    p2 = {x: centre[0]-40, y: centre[1]+20}
+                  }
+                  else if(midAngle > 1.57079){
+                    p0 = {x: centre[0], y: centre[1]}
+                    p1 = {x: centre[0]+20, y: centre[1]+20}
+                    p2 = {x: centre[0]+40, y: centre[1]+20}
+                  }
+                  else{
+                    p0 = {x: centre[0], y: centre[1]}
+                    p1 = {x: centre[0]+20, y: centre[1]-20}
+                    p2 = {x: centre[0]+40, y: centre[1]-20}
+                  }
+                  d.points = [p0, p1, p2]
+                }
+                else{
+                  d.points = [{x: 0, y: 0}, {x: 0, y: 0}, {x: 0, y: 0}]
+                }
+                
+                d.endAngle = d.startAngle;
+              })
+
+              console.log(arcData);
+              const path = d3.arc().innerRadius(0).outerRadius(60);
+              const color = d3.scaleOrdinal()
+              .domain(data.map(d => d.platform))
+              .range(d3.schemeSet2.concat(d3.schemeSet3));
+
+              function tweenArc(b) {
+                return function(a, i) {
+                  var d = b.call(this, a, i),
+                    i = d3.interpolate(a, d);
+                  return function(t) {
+                    return path(i(t));
+                  };
+                };
+              }
+
+              var pieupdates = svg.selectAll('path.arc').data(arcData)//.join('path')
+              var pieenters = pieupdates.enter().append('path')
+              .attr('transform', `translate(${mouseClickX}, ${mouseClickY})`)
+              .attr('class', 'arc')
+              //.attr('d', path)
+              .attr('fill', function(d){
+                return colors[d.data.platform]
+              })
+              pieupdates.merge(pieenters)
+              .transition().duration(2000)
+              .attrTween("d", tweenArc(function(d, i) {
+                return {
+                  startAngle: d.startAngle,	
+                  endAngle: d._endAngle
+                };
+              }))
+
+              function textPoints(d){
+                console.log('textPoints', d)
+                d.endAngle = d._endAngle;
+                var centre = arcInner.centroid(d);
+                d.endAngle = d.startAngle;
+                
+                var midAngle = (d.startAngle + d._endAngle) / 2;
+                var fontDis = d.data.platform.length * 10;
+                if(midAngle > 4.7123){
+                  centre = [centre[0]-40-fontDis, centre[1]-15]
+                  
+                }
+                else if(midAngle > 3.14159){
+                  centre = [centre[0]-40-fontDis, centre[1]+25]
+                }
+                else if(midAngle > 1.57079){
+                  centre = [centre[0]+40, centre[1]+25]
+                }
+                else{
+                  centre = [centre[0]+40, centre[1]-15]
+                }
+            
+                return centre
+              }
+
+              
+              svg.append('g')
+              .attr('transform', `translate(${mouseClickX}, ${mouseClickY})`)
+              .selectAll('text').data(arcData).join('text')
+              .attr('opacity', '0.0')
+              .transition().duration(2000)
+              .attr('class', 'arc')
+              .attr('transform', d => `translate(${textPoints(d)})`)
+              .attr('opacity', '1.0')
+              .attr('font-size', '16px')
+              .text(function(d){
+                var delta = d._endAngle - d.startAngle;
+                if (delta > 0.4){
+                  return d.data.platform;
+                }
+                else{
+                  return '';
+                }
+              })
+              
+              
+              
+
+              var linePoints = d3.line().x(d => d.x).y(d => d.y);
+
+              svg.append('g')
+              .attr('transform', `translate(${mouseClickX}, ${mouseClickY})`)
+              .selectAll('path').data(arcData).join('path')
+              .attr('opacity', '0.0')
+              .transition().duration(2000)
+              .attr('opacity', '1.0')
+              .attr('class', 'lines')
+              .attr('d', d => linePoints(d.points))
+              .attr('stroke', 'grey')
+              .attr('fill', 'none');
+
+          });
+            
       })})
 
   </script> 
